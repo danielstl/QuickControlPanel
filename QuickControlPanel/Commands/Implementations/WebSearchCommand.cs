@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using QuickControlPanel.Utils;
 
 namespace QuickControlPanel.Commands.Implementations
 {
@@ -14,7 +15,7 @@ namespace QuickControlPanel.Commands.Implementations
 
         public override void ExecuteCommand(char[] flags, string param)
         {
-            Process.Start(@"https://www.google.com/search?q=" + Uri.EscapeDataString(param));
+            CommandUtils.OpenUrl(@"https://www.google.com/search?q=" + Uri.EscapeDataString(param));
         }
     }
 }

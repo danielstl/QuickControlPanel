@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using QuickControlPanel.Utils;
 
 namespace QuickControlPanel.Commands.Implementations
 {
@@ -16,7 +17,7 @@ namespace QuickControlPanel.Commands.Implementations
         public override void ExecuteCommand(char[] flags, string param)
         {
             if (string.IsNullOrEmpty(param)) param = Clipboard.ContainsText() ? Clipboard.GetText() : "";
-            Process.Start(@"https://translate.google.com/#auto/en/" + Uri.EscapeDataString(param));
+            CommandUtils.OpenUrl(@"https://translate.google.com/#auto/en/" + Uri.EscapeDataString(param));
         }
     }
 }
