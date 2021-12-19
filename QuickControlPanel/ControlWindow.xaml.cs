@@ -28,12 +28,13 @@ namespace QuickControlPanel
     public partial class ControlWindow : Window, INotifyPropertyChanged
     {
         #region win32 handles and stuff
+
         [DllImport("user32.dll")]
         private static extern bool RegisterHotKey(
-    [In] IntPtr hWnd,
-    [In] int id,
-    [In] uint fsModifiers,
-    [In] uint vk);
+            [In] IntPtr hWnd,
+            [In] int id,
+            [In] uint fsModifiers,
+            [In] uint vk);
 
         [DllImport("user32.dll")]
         private static extern bool UnregisterHotKey(
@@ -91,21 +92,25 @@ namespace QuickControlPanel
                             handled = true;
                             break;
                     }
+
                     break;
             }
+
             return IntPtr.Zero;
         }
+
         #endregion
-        
+
         public event PropertyChangedEventHandler PropertyChanged;
 
+        private Dictionary<Command, CommandViewModel> _commandMap =
+            CommandRegistry.Instance.RegisteredCommands.ToDictionary(elem => elem, elem => new CommandViewModel(elem));
+
         private ObservableCollection<CommandViewModel> _matchingCommands = new ObservableCollection<CommandViewModel>();
+
         public ObservableCollection<CommandViewModel> MatchingCommands
         {
-            get
-            {
-                return _matchingCommands;
-            }
+            get { return _matchingCommands; }
             set
             {
                 if (!ReferenceEquals(_matchingCommands, value) && _matchingCommands.Count != value.Count) //TODO HACK
@@ -117,33 +122,40 @@ namespace QuickControlPanel
         }
 
         private string _commandInput;
+
         public string CommandInput
         {
-            get
-            {
-                return _commandInput;
-            }
+            get => _commandInput;
             set
             {
                 _commandInput = value;
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CommandInput)));
-                
-                MatchingCommands = CommandRegistry.Instance.FilterForInput(value);
-                SelectedCommand = MatchingCommands.Count == 0 ? null : MatchingCommands[0];
-               // MatchingCommands = lower.Length == 0 ? new ObservableCollection<CommandViewModel>() : new ObservableCollection<CommandViewModel>(CommandRegistry.Instance.RegisteredCommands.Where(c => c.DisplayName.ToLower().Contains(lower)).Select(c => new CommandViewModel(c)));
+
+                var matching = CommandRegistry.Instance.FilterForInput(value);
+                var currentlySelected = MatchingCommands.FirstOrDefault(cmd => cmd.IsSelected)?.Command;
+
+                MatchingCommands =
+                    new ObservableCollection<CommandViewModel>(matching.Select(cmd => _commandMap[cmd]));
+
+                var retainPrevSelection =
+                    currentlySelected != null && matching.Any(cmd => cmd == currentlySelected);
+
+                SelectedCommand = MatchingCommands.Count == 0 ? null :
+                    retainPrevSelection ? _commandMap[currentlySelected] : MatchingCommands[0];
             }
         }
 
         public CommandViewModel SelectedCommand
         {
-            get
-            {
-                return MatchingCommands.FirstOrDefault(c => c.IsSelected);
-            }
+            get => _commandMap.FirstOrDefault(c => c.Value.IsSelected).Value;
             set
             {
-               // Debug.WriteLine(value == null ? "null" : value.Command.DisplayName);
-                if (SelectedCommand == value) return;
+                Debug.WriteLine(value == null ? "null" : value.Command.DisplayName);
+                if (SelectedCommand == value)
+                {
+                    Debug.WriteLine("euqal");
+                    return;
+                }
 
                 var cmd = SelectedCommand;
                 if (cmd != null) cmd.IsSelected = false;
@@ -158,21 +170,18 @@ namespace QuickControlPanel
         }
 
         private ICommand _executeCommandAction;
+
         public ICommand ExecuteCommandAction
         {
             get
             {
-                if (_executeCommandAction == null)
+                return _executeCommandAction ??= new RelayCommand(param =>
                 {
-                    _executeCommandAction = new RelayCommand(param => {
-                        var input = CommandInput;
-                        Hide();
-                        
-                        CommandRegistry.Instance.ProcessCommand(param as Command, input);
-                        });
-                }
+                    var input = CommandInput;
+                    Hide();
 
-                return _executeCommandAction;
+                    CommandRegistry.Instance.ProcessCommand(param as Command, input);
+                });
             }
         }
 
@@ -189,13 +198,13 @@ namespace QuickControlPanel
 
             var desktop = SystemParameters.WorkArea;
             Left = desktop.Right - Width;
-           // Top = desktop.Bottom - Height;
-           
+            // Top = desktop.Bottom - Height;
+
             Height = desktop.Height;
 
             Hide();
         }
-        
+
         private void OnHotKeyPressed()
         {
             CommandInput = "";
@@ -205,13 +214,12 @@ namespace QuickControlPanel
 
             Show();
             Activate();
-            
+
             tbInput.Focus();
         }
 
         private void TextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
-            
         }
 
         private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
@@ -231,15 +239,18 @@ namespace QuickControlPanel
             if (e.Key == Key.Escape)
             {
                 Hide();
-            } else if (e.Key == Key.Enter)
+            }
+            else if (e.Key == Key.Enter)
             {
                 var cmd = SelectedCommand;
-                if (cmd != null) {
+                if (cmd != null)
+                {
                     var input = CommandInput;
                     Hide();
                     CommandRegistry.Instance.ProcessCommand(cmd.Command, input);
                 }
-            } else if (e.Key == Key.Up)
+            }
+            else if (e.Key == Key.Up)
             {
                 if (MatchingCommands.Count > 0)
                 {
@@ -251,7 +262,8 @@ namespace QuickControlPanel
 
                     SelectedCommand = MatchingCommands[ix];
                 }
-            } else if (e.Key == Key.Down)
+            }
+            else if (e.Key == Key.Down)
             {
                 if (MatchingCommands.Count > 0)
                 {
@@ -270,7 +282,6 @@ namespace QuickControlPanel
         {
             if (e.Key == Key.Enter)
             {
-
             }
         }
     }
